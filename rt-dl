@@ -23,17 +23,17 @@ QUERY=`echo $@ | tr '[:upper:]' '[:lower:]'`
 DOMAIN='www.rottentomatoes.com'
 URL="http://$DOMAIN/search/?search=`echo $QUERY | tr ' ' '+'`"
 echo ""
-echo "Extracting review URL from.. ==> $URL"
+echo "Extracting ratings URL from.. ==> $URL"
 
 EXTRACTED_URL=`curl $URL                                                   | # download HTML using curl
         tr -d '\n'                                                         | # remove carriage returns
         sed 's#</#\n</#g'                                                  | # tokenize by HTML tag
         grep "/m/.*\`echo $QUERY | tr ' ' '_'\`"                           | # locate lines with "/m/" and "$QUERY"
-        sed 's#^.*href=\"\([^\"]*\)\".*class=\"\".*>[ \t]*\(.*\)$#\2|\1#g' | # capture film title, and review URL
+        sed 's#^.*href=\"\([^\"]*\)\".*class=\"\".*>[ \t]*\(.*\)$#\2|\1#g' | # capture film title and ratings URL
         grep -v "^|.*$"                                                    | # skip films with no title 
         sort | uniq`
 echo ""
-echo -e "Downloading reviews from:\n`echo \"$EXTRACTED_URL\" | cut -d'|' -f1 | xargs -I@ echo - @`"
+echo -e "Downloading ratings from:\n`echo \"$EXTRACTED_URL\" | cut -d'|' -f1 | xargs -I@ echo - @`"
 
 echo ""
 while read LINE; do
