@@ -1,0 +1,55 @@
+#!/bin/bash
+
+CMD=`basename $0`
+
+show_help()
+{
+    echo "Usage: $CMD <URL> [FORCE={0/1}]"
+}
+
+if [ $# -lt 1 ]; then
+    echo "Fail! -- Expecting at least 1 arguments! ==> $@"
+    show_help
+    exit 1
+fi
+
+if [ -z "`which curl`" ]; then
+    echo "Fail! -- Requires \"curl\""
+    echo "Hint: sudo aptitude install curl"
+    exit 1
+fi
+
+QUERY=`echo $@ | tr '[:upper:]' '[:lower:]'`
+DOMAIN='www.rottentomatoes.com'
+URL="http://$DOMAIN/search/?search=`echo $QUERY | tr ' ' '+'`"
+echo ""
+echo "Extracting review URL from.. ==> $URL"
+
+EXTRACTED_URL=`curl $URL                                                   | # download HTML using curl
+        tr -d '\n'                                                         | # remove carriage returns
+        sed 's#</#\n</#g'                                                  | # tokenize by HTML tag
+        grep "/m/.*\`echo $QUERY | tr ' ' '_'\`"                           | # locate lines with "/m/" and "$QUERY"
+        sed 's#^.*href=\"\([^\"]*\)\".*class=\"\".*>[ \t]*\(.*\)$#\2|\1#g' | # capture film title, and review URL
+        grep -v "^|.*$"                                                    | # skip films with no title 
+        sort | uniq`
+echo ""
+echo -e "Downloading reviews from:\n`echo \"$EXTRACTED_URL\" | cut -d'|' -f1 | xargs -I@ echo - @`"
+
+echo ""
+while read LINE; do
+    FILM_NAME=`echo $LINE | cut -d'|' -f1`
+    FILM_URL="http://$DOMAIN`echo $LINE | cut -d'|' -f2`"
+    echo -n "\"$FILM_NAME\" ==> "
+    CRITICS_RATING=`curl -s $FILM_URL | # download HTML using curl
+            tr -d '\n'                | # remove carriage returns
+            sed 's#</#\n</#g'         | # tokenize by HTML tag
+            grep "ratingValue"        | # locate lines with "ratingValue"
+            tr '\n' @                 | # tokenize by line
+            cut -d@ -f1               | # isolate first instance
+            sed 's/^.*>//g'`            # remove everything before ">"
+    if [ -n "$CRITICS_RATING" ]; then
+        echo "$CRITICS_RATING% of critics liked it!"
+    else
+        echo "n/a"
+    fi
+done <<< "$EXTRACTED_URL"
