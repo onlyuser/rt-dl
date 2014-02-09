@@ -4,7 +4,7 @@ CMD=`basename $0`
 
 show_help()
 {
-    echo "Usage: $CMD <URL> [FORCE={0/1}]"
+    echo "Usage: $CMD <FILM_TITLE>"
 }
 
 if [ $# -lt 1 ]; then
