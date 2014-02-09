@@ -6,15 +6,14 @@ Copyright (C) 2011-2013 Jerry Chen <mailto:onlyuser@gmail.com>
 About:
 ------
 
-rt-dl is a bash script for querying RottenTomatoes film ratings.
+rt-dl is a script to query RottenTomatoes film ratings.
 
 Requirements:
 -------------
 
 * bash
 * curl
-* tor
-* http://rottentomatoes.com
+* http://www.rottentomatoes.com
 
 Installation (Debian):
 ----------------------
