@@ -8,7 +8,7 @@ show_help()
 }
 
 if [ $# -lt 1 ]; then
-    echo "Fail! -- Expecting at least 1 arguments! ==> $@"
+    echo "Fail! -- Expecting at least 1 argument! ==> $@"
     show_help
     exit 1
 fi
