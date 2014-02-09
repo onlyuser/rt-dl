@@ -6,7 +6,7 @@ Copyright (C) 2011-2013 Jerry Chen <mailto:onlyuser@gmail.com>
 About:
 ------
 
-rt-dl.sh is a bash script for querying RottenTomatoes film ratings.
+rt-dl is a bash script for querying RottenTomatoes film ratings.
 
 Requirements:
 -------------
