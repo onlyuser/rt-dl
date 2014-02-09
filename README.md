@@ -32,4 +32,4 @@ rt-dl &lt;FILM_TITLE&gt;
 Keywords:
 ---------
 
-    How to query RottenTomatoes film reviews?
+    How to query RottenTomatoes film ratings?
