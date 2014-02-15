@@ -7,6 +7,30 @@ show_help()
     echo "Usage: $CMD <FILM_TITLE>"
 }
 
+get_film_rating_from_cached_html()
+{
+    if [ $# -ne 2 ]; then
+        echo "Fail! -- Expecting 2 argument! ==> $@"
+        return 1 # non-zero as false
+    fi
+    local CRITICS_RATING_VAR=$1
+    local CACHED_HTML=$2
+    if [ -n "`cat $CACHED_HTML | grep 'Search Results'`" ]; then
+        echo "Fail! -- Cannot get film rating from search results page"
+        return 1 # non-zero as false
+    fi
+    if [ -f $FILENAME ]; then
+        CRITICS_RATING=`cat $CACHED_HTML | # download HTML using curl
+                tr -d '\n'               | # remove carriage returns
+                sed 's#</#\n</#g'        | # tokenize by HTML tag
+                grep "ratingValue"       | # locate lines with "ratingValue"
+                tr '\n' @                | # tokenize by line
+                cut -d@ -f1              | # isolate first instance
+                sed 's/^.*>//g'`           # remove everything before ">"
+    fi
+    eval "$CRITICS_RATING_VAR=$CRITICS_RATING"
+}
+
 if [ $# -lt 1 ]; then
     echo "Fail! -- Expecting at least 1 argument! ==> $@"
     show_help
@@ -25,7 +49,22 @@ URL="http://$DOMAIN/search/?search=`echo $QUERY | tr ' ' '+'`"
 echo ""
 echo "Extracting ratings URL from.. ==> $URL"
 
-EXTRACTED_URL=`curl $URL                                                   | # download HTML using curl
+TEMP_FILE=`mktemp`
+trap "rm $TEMP_FILE" EXIT
+
+curl -L -s $URL > $TEMP_FILE
+if [ -z "`cat $TEMP_FILE | grep 'Search Results'`" ]; then
+    get_film_rating_from_cached_html CRITICS_RATING $TEMP_FILE
+    echo ""
+    if [ -n "$CRITICS_RATING" ]; then
+        echo "$CRITICS_RATING% of critics liked it!"
+    else
+        echo "n/a"
+    fi
+    exit
+fi
+
+EXTRACTED_URL=`cat $TEMP_FILE                                              | # download HTML using curl
         tr -d '\n'                                                         | # remove carriage returns
         sed 's#</#\n</#g'                                                  | # tokenize by HTML tag
         grep "/m/.*\`echo $QUERY | tr ' ' '_'\`"                           | # locate lines with "/m/" and "$QUERY"
@@ -33,21 +72,18 @@ EXTRACTED_URL=`curl $URL                                                   | # d
         tr -d "'"                                                          | # remove apostrophes
         grep -v "^|.*$"                                                    | # skip films with no title
         sort | uniq`
+
 echo ""
-echo -e "Downloading ratings from:\n`echo \"$EXTRACTED_URL\" | cut -d'|' -f1 | xargs -I@ echo - @`"
+echo -e "Downloading ratings for:\n`echo \"$EXTRACTED_URL\" | cut -d'|' -f1 | xargs -I@ echo - @`"
 
 echo ""
 while read LINE; do
     FILM_NAME=`echo $LINE | cut -d'|' -f1`
     FILM_URL="http://$DOMAIN`echo $LINE | cut -d'|' -f2`"
     echo -n "\"$FILM_NAME\" ==> "
-    CRITICS_RATING=`curl -s $FILM_URL | # download HTML using curl
-            tr -d '\n'                | # remove carriage returns
-            sed 's#</#\n</#g'         | # tokenize by HTML tag
-            grep "ratingValue"        | # locate lines with "ratingValue"
-            tr '\n' @                 | # tokenize by line
-            cut -d@ -f1               | # isolate first instance
-            sed 's/^.*>//g'`            # remove everything before ">"
+    trap "rm $TEMP_FILE" EXIT
+    curl -L -s $FILM_URL > $TEMP_FILE
+    get_film_rating_from_cached_html CRITICS_RATING $TEMP_FILE
     if [ -n "$CRITICS_RATING" ]; then
         echo "$CRITICS_RATING% of critics liked it!"
     else
