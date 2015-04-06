@@ -16,17 +16,16 @@ get_film_rating_from_cached_html()
     local CRITICS_RATING_VAR=$1
     local CACHED_HTML_VAR=$2
     local CACHED_HTML=`eval "echo $\`echo $CACHED_HTML_VAR\`"`
-    if [ -n "`echo $CACHED_HTML | grep 'Search Results'`" ]; then
+    if [ -n "`echo $CACHED_HTML | grep 'Search Results for'`" ]; then
         echo "Fail! -- Cannot get film rating from search results page"
         return 1 # non-zero as false
     fi
-    CRITICS_RATING=`echo $CACHED_HTML | # download HTML using curl
-            tr -d '\n'                | # remove carriage returns
-            sed 's#</#\n</#g'         | # tokenize by HTML tag
-            grep "ratingValue"        | # locate lines with "ratingValue"
-            tr '\n' @                 | # tokenize by line
-            cut -d@ -f1               | # isolate first instance
-            sed 's/^.*>//g'`            # remove everything before ">"
+    CRITICS_RATING=`echo $CACHED_HTML                             | # download HTML using curl
+            tr -d '\n'                                            | # remove carriage returns
+            sed 's#</#\n</#g'                                     | # tokenize by HTML tag
+            grep 'itemprop="ratingValue">[0-9]\+'                 | # locate lines with "ratingValue"
+            sed 's#^.*itemprop="ratingValue">\([0-9]\+\).*$#\1#g' | # capture rating values
+            head -1`                                                # isolate first instance
     eval "$CRITICS_RATING_VAR=$CRITICS_RATING"
 }
 
@@ -42,14 +41,15 @@ if [ -z "`which curl`" ]; then
     exit 1
 fi
 
-QUERY=`echo $@ | tr '[:upper:]' '[:lower:]'`
+QUERY=$@
+QUERY_URL="/m/.*`echo $QUERY | tr '[:upper:]' '[:lower:]' | tr ' ' '_'`.*"
 DOMAIN='www.rottentomatoes.com'
 URL="http://$DOMAIN/search/?search=`echo $QUERY | tr ' ' '+'`"
 echo ""
 echo "Extracting ratings URL from.. ==> $URL"
 
 CACHED_HTML=`curl -L -s $URL`
-if [ -z "`echo $CACHED_HTML | grep 'Search Results'`" ]; then
+if [ -z "`echo $CACHED_HTML | grep 'Search Results for'`" ]; then
     get_film_rating_from_cached_html CRITICS_RATING CACHED_HTML
     echo ""
     if [ -n "$CRITICS_RATING" ]; then
@@ -60,13 +60,13 @@ if [ -z "`echo $CACHED_HTML | grep 'Search Results'`" ]; then
     exit
 fi
 
-EXTRACTED_URL=`echo $CACHED_HTML                                           | # download HTML using curl
-        tr -d '\n'                                                         | # remove carriage returns
-        sed 's#</#\n</#g'                                                  | # tokenize by HTML tag
-        grep "/m/.*\`echo $QUERY | tr ' ' '_'\`"                           | # locate lines with "/m/" and "$QUERY"
-        sed 's#^.*href=\"\([^\"]*\)\".*class=\"\".*>[ \t]*\(.*\)$#\2|\1#g' | # capture film title and ratings URL
-        tr -d "'"                                                          | # remove apostrophes
-        grep -v "^|.*$"                                                    | # skip films with no title
+EXTRACTED_URL=`echo $CACHED_HTML                                      | # download HTML using curl
+        tr -d '\n'                                                    | # remove carriage returns
+        sed 's#</#\n</#g'                                             | # tokenize by HTML tag
+        grep "href=\"$QUERY_URL\".*title="                            | # locate lines with "/m/$QUERY_URL" and "title="
+        sed 's#^.*href=\"\([^"]*\)\".*title=\"\([^"]*\)\".*$#\2|\1#g' | # capture film title and ratings URL
+        tr -d "'"                                                     | # remove apostrophes
+        grep -v "^|.*$"                                               | # skip films with no title
         sort | uniq`
 
 echo ""
