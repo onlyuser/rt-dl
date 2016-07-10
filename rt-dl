@@ -20,12 +20,12 @@ get_film_rating_from_cached_html()
         echo "Fail! -- Cannot get film rating from search results page"
         return 1 # non-zero as false
     fi
-    CRITICS_RATING=`echo $CACHED_HTML                             | # download HTML using curl
-            tr -d '\n'                                            | # remove carriage returns
-            sed 's#</#\n</#g'                                     | # tokenize by HTML tag
-            grep 'itemprop="ratingValue">[0-9]\+'                 | # locate lines with "ratingValue"
-            sed 's#^.*itemprop="ratingValue">\([0-9]\+\).*$#\1#g' | # capture rating values
-            head -1`                                                # isolate first instance
+    CRITICS_RATING=`echo $CACHED_HTML                                        | # download HTML using curl
+            tr -d '\n'                                                       | # remove carriage returns
+            sed 's#</#\n</#g'                                                | # tokenize by HTML tag
+            grep 'progress-bar [^"]*\" style="width:[0-9]\+'                 | # locate lines with "ratingValue"
+            sed 's#^.*progress-bar [^"]*\" style="width:\([0-9]\+\).*$#\1#g' | # capture rating values
+            head -1`                                                           # isolate first instance
     eval "$CRITICS_RATING_VAR=$CRITICS_RATING"
 }
 
@@ -44,7 +44,7 @@ fi
 QUERY=$@
 QUERY_URL="/m/.*`echo $QUERY | tr '[:upper:]' '[:lower:]' | tr ' ' '_'`.*"
 DOMAIN='www.rottentomatoes.com'
-URL="http://$DOMAIN/search/?search=`echo $QUERY | tr ' ' '+'`"
+URL="http://$DOMAIN/search/?search=`echo $QUERY | sed 's/ /%20/g'`"
 echo ""
 echo "Extracting ratings URL from.. ==> $URL"
 
@@ -60,13 +60,14 @@ if [ -z "`echo $CACHED_HTML | grep 'Search Results for'`" ]; then
     exit
 fi
 
-EXTRACTED_URL=`echo $CACHED_HTML                                      | # download HTML using curl
-        tr -d '\n'                                                    | # remove carriage returns
-        sed 's#</#\n</#g'                                             | # tokenize by HTML tag
-        grep "href=\"$QUERY_URL\".*title="                            | # locate lines with "/m/$QUERY_URL" and "title="
-        sed 's#^.*href=\"\([^"]*\)\".*title=\"\([^"]*\)\".*$#\2|\1#g' | # capture film title and ratings URL
-        tr -d "'"                                                     | # remove apostrophes
-        grep -v "^|.*$"                                               | # skip films with no title
+EXTRACTED_URL=`echo $CACHED_HTML                      | # download HTML using curl
+        tr -d '\n'                                    | # remove carriage returns
+        sed 's#</#\n</#g'                             | # tokenize by HTML tag
+        grep "href=\"$QUERY_URL\".*"                  | # locate lines with "/m/$QUERY_URL"
+        grep -v 'img src='                            | # remove lines with "img src="
+        sed 's#^.*href=\"\([^"]*\)\">\(.*\)$#\2|\1#g' | # capture film title and ratings URL
+        tr -d "'"                                     | # remove apostrophes
+        grep -v "^|.*$"                               | # skip films with no title
         sort | uniq`
 
 echo ""
