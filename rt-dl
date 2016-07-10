@@ -60,14 +60,15 @@ if [ -z "`echo $CACHED_HTML | grep 'Search Results for'`" ]; then
     exit
 fi
 
-EXTRACTED_URL=`echo $CACHED_HTML                      | # download HTML using curl
-        tr -d '\n'                                    | # remove carriage returns
-        sed 's#</#\n</#g'                             | # tokenize by HTML tag
-        grep "href=\"$QUERY_URL\".*"                  | # locate lines with "/m/$QUERY_URL"
-        grep -v 'img src='                            | # remove lines with "img src="
-        sed 's#^.*href=\"\([^"]*\)\">\(.*\)$#\2|\1#g' | # capture film title and ratings URL
-        tr -d "'"                                     | # remove apostrophes
-        grep -v "^|.*$"                               | # skip films with no title
+EXTRACTED_URL=`echo $CACHED_HTML                                               | # download HTML using curl
+        tr -d '\n'                                                             | # remove carriage returns
+        sed 's#</a> <span class="movie_year"> (\([0-9]*\))</span># (\1)</a>#g' | # include movie year
+        sed 's#</#\n</#g'                                                      | # tokenize by HTML tag
+        grep "href=\"$QUERY_URL\".*"                                           | # locate lines with "/m/$QUERY_URL"
+        grep -v 'img src='                                                     | # remove lines with "img src="
+        sed 's#^.*href=\"\([^"]*\)\">\(.*\)$#\2|\1#g'                          | # capture film title and ratings URL
+        tr -d "'"                                                              | # remove apostrophes
+        grep -v "^|.*$"                                                        | # skip films with no title
         sort | uniq`
 
 echo ""
