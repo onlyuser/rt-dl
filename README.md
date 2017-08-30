@@ -1,7 +1,7 @@
 rt-dl
 =====
 
-Copyright (C) 2011-2013 Jerry Chen <mailto:onlyuser@gmail.com>
+Copyright (C) 2011-2017 <mailto:onlyuser@gmail.com>
 
 About:
 ------
