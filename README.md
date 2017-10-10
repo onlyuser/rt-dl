@@ -3,30 +3,30 @@ rt-dl
 
 Copyright (C) 2011-2017 <mailto:onlyuser@gmail.com>
 
-About:
-------
+About
+-----
 
 rt-dl is a script to query RottenTomatoes film ratings.
 
-Requirements:
--------------
+Requirements
+------------
 
     bash curl http://www.rottentomatoes.com
 
-Installation (Debian):
-----------------------
+Installation (Debian)
+---------------------
 
 1. git clone https://github.com/onlyuser/rt-dl.git
 2. sudo aptitude install curl
 
-Usage:
-------
+Usage
+-----
 
 <pre>
 rt-dl &lt;FILM_TITLE&gt;
 </pre>
 
-Keywords:
----------
+Keywords
+--------
 
     How to query RottenTomatoes film ratings?
